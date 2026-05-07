@@ -9,9 +9,8 @@ export default function Home() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState("login");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [openFaq, setOpenFaq] = useState(null);
   const [activeTab, setActiveTab] = useState("booking");
-  const [bookingDept, setBookingDept] = useState("Primary Care");
+const [bookingDept, setBookingDept] = useState<Department>("Primary Care");
   const [bookingDoctor, setBookingDoctor] = useState("");
   const [bookingDate, setBookingDate] = useState("");
   const [bookingTime, setBookingTime] = useState("");
@@ -20,6 +19,27 @@ export default function Home() {
   const [bookingStatus, setBookingStatus] = useState("idle");
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatMessage, setChatMessage] = useState("");
+
+
+  type Department = "Primary Care" | "Pediatrics" | "Cardiology";
+
+  type Appointment = {
+  id: number;
+  doctor: string;
+  date: string;
+  time: string;
+  dept: Department;
+  status: string;
+  type: string;
+};
+
+
+
+  const doctorsByDept: Record<Department, string[]> = {
+  "Primary Care": ["Dr. Emily Chen", "Dr. Marcus Johnson", "Dr. Olivia Smith"],
+  Pediatrics: ["Dr. David Lee", "Dr. Sarah Williams"],
+  Cardiology: ["Dr. Sarah Jenkins", "Dr. Robert Patel", "Dr. Michael Chang"],
+};
 
   const [messages, setMessages] = useState([
   {
@@ -30,7 +50,7 @@ export default function Home() {
 
 const [isTyping, setIsTyping] = useState(false);
 
-  const [appointments, setAppointments] = useState([
+  const [appointments, setAppointments] = useState<Appointment[]>([
     { id: 101, doctor: "Dr. Emily Chen", date: "2026-05-10", time: "02:30 PM", dept: "Primary Care", status: "Confirmed", type: "Telehealth" },
     { id: 102, doctor: "Dr. Marcus Johnson", date: "2026-05-15", time: "09:00 AM", dept: "Primary Care", status: "Confirmed", type: "In-Person" }
   ]);
@@ -47,11 +67,6 @@ const [isTyping, setIsTyping] = useState(false);
     { ticket: "PC-014", name: "Charlie D.", status: "Waiting" }
   ]);
 
-  const doctorsByDept = {
-    "Primary Care": ["Dr. Emily Chen", "Dr. Marcus Johnson", "Dr. Olivia Smith"],
-    "Pediatrics": ["Dr. David Lee", "Dr. Sarah Williams"],
-    "Cardiology": ["Dr. Sarah Jenkins", "Dr. Robert Patel", "Dr. Michael Chang"],
-  };
 
   const availableSlots = [
     "08:30 AM", "09:00 AM", "10:15 AM", "11:00 AM", 
@@ -81,11 +96,11 @@ const [isTyping, setIsTyping] = useState(false);
   ];
 
   useEffect(() => {
-    setBookingDoctor(doctorsByDept[bookingDept][0]);
+  setBookingDoctor(doctorsByDept[bookingDept]?.[0] || "");
     setBookingTime("");
   }, [bookingDept]);
 
-  const handleBookClick = (e) => {
+  const handleBookClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (!isLoggedIn) {
       e.preventDefault();
       setIsAuthModalOpen(true);
@@ -95,54 +110,66 @@ const [isTyping, setIsTyping] = useState(false);
     }
   };
 
-  const handleAuthSubmit = (e) => {
+  const handleAuthSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoggedIn(true);
     setIsAuthModalOpen(false);
+
     setTimeout(() => {
       document.getElementById("portal")?.scrollIntoView({ behavior: "smooth" });
     }, 100);
   };
 
-  const toggleFaq = (index) => {
-    setOpenFaq(openFaq === index ? null : index);
+
+const [openFaq, setOpenFaq] = useState<number | null>(null);
+
+const toggleFaq = (index: number) => {
+  setOpenFaq(openFaq === index ? null : index);
+};
+
+const handleBookingSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+
+  setBookingStatus("submitting");
+
+  const newAppt = {
+    id: Math.floor(Math.random() * 1000),
+    doctor: bookingDoctor,
+    date: bookingDate,
+    time: bookingTime,
+    dept: bookingDept,
+    status: "Confirmed",
+    type: isTelehealth ? "Telehealth" : "In-Person"
   };
 
-  const handleBookingSubmit = (e) => {
-    e.preventDefault();
-    setBookingStatus("submitting");
-    const newAppt = {
-      id: Math.floor(Math.random() * 1000),
-      doctor: bookingDoctor,
-      date: bookingDate,
-      time: bookingTime,
-      dept: bookingDept,
-      status: "Confirmed",
-      type: isTelehealth ? "Telehealth" : "In-Person"
-    };
+  setTimeout(() => {
+    setAppointments([...appointments, newAppt]);
+    setBookingStatus("success");
+
     setTimeout(() => {
-      setAppointments([...appointments, newAppt]);
-      setBookingStatus("success");
-      setTimeout(() => {
-        setBookingStatus("idle");
-        setBookingDate("");
-        setBookingTime("");
-      }, 3000);
-    }, 1500);
-  };
+      setBookingStatus("idle");
+      setBookingDate("");
+      setBookingTime("");
+    }, 3000);
+  }, 1500);
+};
 
-  const cancelAppointment = (id) => {
-    setAppointments(appointments.filter(a => a.id !== id));
-  };
+    const cancelAppointment = (id: number) => {
+      setAppointments(appointments.filter(a => a.id !== id));
+    };
 
-  const rescheduleAppointment = (id) => {
-    const appt = appointments.find(a => a.id === id);
-    setBookingDept(appt.dept);
-    setBookingDoctor(appt.doctor);
-    setIsTelehealth(appt.type === "Telehealth");
-    setActiveTab("booking");
-    cancelAppointment(id);
-  };
+    const rescheduleAppointment = (id: number) => {
+      const app = appointments.find(a => a.id === id);
+
+      if (!app) return;
+
+      setBookingDept(app.dept);
+      setBookingDoctor(app.doctor);
+      setIsTelehealth(app.type === "Telehealth");
+      setActiveTab("booking");
+
+      cancelAppointment(id);
+    };
 
   const handleSendMessage = () => {
   if (!chatMessage.trim()) return;
@@ -435,8 +462,11 @@ const [isTyping, setIsTyping] = useState(false);
                           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                             <div>
                               <label className="mb-2 block text-sm font-semibold text-slate-700">Department</label>
-                              <select value={bookingDept} onChange={(e) => setBookingDept(e.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3.5 focus:border-blue-500 transition-all shadow-sm">
-                                {Object.keys(doctorsByDept).map(dept => <option key={dept} value={dept}>{dept}</option>)}
+                              <select
+                                value={bookingDept}
+                                onChange={(e) => setBookingDept(e.target.value as Department)}
+                                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3.5 focus:border-blue-500 transition-all shadow-sm"
+                              >
                               </select>
                             </div>
                             <div>
