@@ -145,7 +145,7 @@ export default function DoctorDashboard() {
             <div className="bg-blue-600 text-white p-2 rounded-xl shadow-lg shadow-blue-200">
               <Activity size={24} strokeWidth={3} />
             </div>
-            HealthPort
+            HealthFirst
           </div>
         </div>
 
