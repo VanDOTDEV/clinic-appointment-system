@@ -2,15 +2,20 @@
 
 import Image from "next/image";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState("patient"); 
+
+  const router = useRouter();
+
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState("login");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("booking");
-const [bookingDept, setBookingDept] = useState<Department>("Primary Care");
+
+  const [bookingDept, setBookingDept] = useState<Department>("Primary Care");
   const [bookingDoctor, setBookingDoctor] = useState("");
   const [bookingDate, setBookingDate] = useState("");
   const [bookingTime, setBookingTime] = useState("");
@@ -20,35 +25,29 @@ const [bookingDept, setBookingDept] = useState<Department>("Primary Care");
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatMessage, setChatMessage] = useState("");
 
-
   type Department = "Primary Care" | "Pediatrics" | "Cardiology";
 
   type Appointment = {
-  id: number;
-  doctor: string;
-  date: string;
-  time: string;
-  dept: Department;
-  status: string;
-  type: string;
-};
-
-
+    id: number;
+    doctor: string;
+    date: string;
+    time: string;
+    dept: Department;
+    status: string;
+    type: string;
+  };
 
   const doctorsByDept: Record<Department, string[]> = {
-  "Primary Care": ["Dr. Emily Chen", "Dr. Marcus Johnson", "Dr. Olivia Smith"],
-  Pediatrics: ["Dr. David Lee", "Dr. Sarah Williams"],
-  Cardiology: ["Dr. Sarah Jenkins", "Dr. Robert Patel", "Dr. Michael Chang"],
-};
+    "Primary Care": ["Dr. Emily Chen", "Dr. Marcus Johnson", "Dr. Olivia Smith"],
+    Pediatrics: ["Dr. David Lee", "Dr. Sarah Williams"],
+    Cardiology: ["Dr. Sarah Jenkins", "Dr. Robert Patel", "Dr. Michael Chang"],
+  };
 
   const [messages, setMessages] = useState([
-  {
-    sender: "support",
-    text: "Hello! How can we help you today?",
-  },
-]);
+    { sender: "support", text: "Hello! How can we help you today?" },
+  ]);
 
-const [isTyping, setIsTyping] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
 
   const [appointments, setAppointments] = useState<Appointment[]>([
     { id: 101, doctor: "Dr. Emily Chen", date: "2026-05-10", time: "02:30 PM", dept: "Primary Care", status: "Confirmed", type: "Telehealth" },
@@ -66,7 +65,6 @@ const [isTyping, setIsTyping] = useState(false);
     { ticket: "PC-013", name: "Bob S.", status: "Waiting" },
     { ticket: "PC-014", name: "Charlie D.", status: "Waiting" }
   ]);
-
 
   const availableSlots = [
     "08:30 AM", "09:00 AM", "10:15 AM", "11:00 AM", 
@@ -96,7 +94,7 @@ const [isTyping, setIsTyping] = useState(false);
   ];
 
   useEffect(() => {
-  setBookingDoctor(doctorsByDept[bookingDept]?.[0] || "");
+    setBookingDoctor(doctorsByDept[bookingDept]?.[0] || "");
     setBookingTime("");
   }, [bookingDept]);
 
@@ -112,124 +110,79 @@ const [isTyping, setIsTyping] = useState(false);
 
   const handleAuthSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
     setIsLoggedIn(true);
     setIsAuthModalOpen(false);
 
-    setTimeout(() => {
-      document.getElementById("portal")?.scrollIntoView({ behavior: "smooth" });
-    }, 100);
+    // 👇 redirect based on role
+    if (userRole === "doctor") {
+      router.push("/doctor");
+    }
   };
 
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
-const [openFaq, setOpenFaq] = useState<number | null>(null);
-
-const toggleFaq = (index: number) => {
-  setOpenFaq(openFaq === index ? null : index);
-};
-
-const handleBookingSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
-
-  setBookingStatus("submitting");
-
-  const newAppt = {
-    id: Math.floor(Math.random() * 1000),
-    doctor: bookingDoctor,
-    date: bookingDate,
-    time: bookingTime,
-    dept: bookingDept,
-    status: "Confirmed",
-    type: isTelehealth ? "Telehealth" : "In-Person"
+  const toggleFaq = (index: number) => {
+    setOpenFaq(openFaq === index ? null : index);
   };
 
-  setTimeout(() => {
-    setAppointments([...appointments, newAppt]);
-    setBookingStatus("success");
+  const handleBookingSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    setBookingStatus("submitting");
+
+    const newAppt = {
+      id: Math.floor(Math.random() * 1000),
+      doctor: bookingDoctor,
+      date: bookingDate,
+      time: bookingTime,
+      dept: bookingDept,
+      status: "Confirmed",
+      type: isTelehealth ? "Telehealth" : "In-Person"
+    };
 
     setTimeout(() => {
-      setBookingStatus("idle");
-      setBookingDate("");
-      setBookingTime("");
-    }, 3000);
-  }, 1500);
-};
+      setAppointments([...appointments, newAppt]);
+      setBookingStatus("success");
+    }, 1500);
+  };
 
-    const cancelAppointment = (id: number) => {
-      setAppointments(appointments.filter(a => a.id !== id));
-    };
+  const cancelAppointment = (id: number) => {
+    setAppointments(appointments.filter(a => a.id !== id));
+  };
 
-    const rescheduleAppointment = (id: number) => {
-      const app = appointments.find(a => a.id === id);
+  const rescheduleAppointment = (id: number) => {
+    const app = appointments.find(a => a.id === id);
+    if (!app) return;
 
-      if (!app) return;
-
-      setBookingDept(app.dept);
-      setBookingDoctor(app.doctor);
-      setIsTelehealth(app.type === "Telehealth");
-      setActiveTab("booking");
-
-      cancelAppointment(id);
-    };
+    setBookingDept(app.dept);
+    setBookingDoctor(app.doctor);
+    setIsTelehealth(app.type === "Telehealth");
+    setActiveTab("booking");
+    cancelAppointment(id);
+  };
 
   const handleSendMessage = () => {
-  if (!chatMessage.trim()) return;
+    if (!chatMessage.trim()) return;
 
-  const userMessage = {
-    sender: "user",
-    text: chatMessage,
+    setMessages(prev => [...prev, { sender: "user", text: chatMessage }]);
+    setChatMessage("");
+    setIsTyping(true);
+
+    setTimeout(() => {
+      setMessages(prev => [
+        ...prev,
+        { sender: "support", text: "A support representative will get back to you shortly." }
+      ]);
+      setIsTyping(false);
+    }, 1200);
   };
 
-  setMessages((prev) => [...prev, userMessage]);
-  setChatMessage("");
-  setIsTyping(true);
-
-  setTimeout(() => {
-    let botReply = "Thank you for contacting HealthFirst.";
-
-    const lowerMessage = chatMessage.toLowerCase();
-
-    if (
-      lowerMessage.includes("appointment") ||
-      lowerMessage.includes("book")
-    ) {
-      botReply =
-        "You can book an appointment in the Patient Portal under the Booking section.";
-    } else if (
-      lowerMessage.includes("doctor") ||
-      lowerMessage.includes("schedule")
-    ) {
-      botReply =
-        "Our doctors are available Monday to Friday from 8:00 AM to 8:00 PM.";
-    } else if (
-      lowerMessage.includes("telehealth") ||
-      lowerMessage.includes("online")
-    ) {
-      botReply =
-        "Yes, we offer secure telehealth consultations for selected services.";
-    } else if (
-      lowerMessage.includes("emergency")
-    ) {
-      botReply =
-        "For emergencies, please contact our 24/7 hotline immediately.";
-    } else {
-      botReply =
-        "A support representative will get back to you shortly.";
-    }
-
-    setMessages((prev) => [
-      ...prev,
-      {
-        sender: "support",
-        text: botReply,
-      },
-    ]);
-
-    setIsTyping(false);
-  }, 1200);
-};
 
   return (
+
     <div className="min-h-screen scroll-smooth bg-slate-50 font-sans text-slate-900 selection:bg-blue-200 relative">
+      
       
       {isAuthModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
